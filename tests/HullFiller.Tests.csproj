@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net8.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings><GameDir Condition="'$(GameDir)'==''">C:\Program Files (x86)\Steam\steamapps\common\Starship EVO</GameDir><LoaderDir Condition="'$(LoaderDir)'==''">$(GameDir)\BepInEx\core</LoaderDir></PropertyGroup>
-  <ItemGroup><Compile Include="../src/HullGeometry.cs" Link="HullGeometry.cs"/><Compile Include="../src/PlacementMath.cs" Link="PlacementMath.cs"/><Compile Include="../src/ResourceMethodPolicy.cs" Link="ResourceMethodPolicy.cs"/></ItemGroup>
+  <ItemGroup><Compile Include="../src/HullGeometry.cs" Link="HullGeometry.cs"/><Compile Include="../src/PlacementMath.cs" Link="PlacementMath.cs"/><Compile Include="../src/ResourceMethodPolicy.cs" Link="ResourceMethodPolicy.cs"/><Compile Include="../src/BuildCompatibility.cs" Link="BuildCompatibility.cs"/></ItemGroup>
   <ItemGroup><Reference Include="Mono.Cecil"><HintPath>$(LoaderDir)\Mono.Cecil.dll</HintPath></Reference></ItemGroup>
 </Project>

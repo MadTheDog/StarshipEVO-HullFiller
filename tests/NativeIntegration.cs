@@ -25,7 +25,9 @@ static class NativeIntegration
         var guard=plugin.MainModule.Types.Single(t=>t.Name=="ResourceReadyPatch");
         check(guard.CustomAttributes.Any(a=>a.AttributeType.FullName=="HarmonyLib.HarmonyPatch"),"Compiled resource-ready guard has Harmony target");
         check(guard.Methods.Single(m=>m.Name=="Prefix").Body.Instructions.Any(i=>i.Operand is MethodReference m && m.Name=="RequireReadyForResourceCallbacks"),"Compiled readiness hook enforces collision readiness");
-        string pinned=(string)plugin.MainModule.Types.Single(t=>t.FullName=="HullFiller.Plugin").Fields.Single(f=>f.Name=="SupportedHash").Constant;
-        check(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(gameDll)))==pinned,"Compiled supported-assembly hash matches installed game");
+        var compatibility=plugin.MainModule.Types.Single(t=>t.FullName=="HullFiller.BuildCompatibility");
+        var pinned=compatibility.Fields.Where(f=>f.HasConstant).Select(f=>(string)f.Constant).ToArray();
+        check(pinned.Contains(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(gameDll)))),"Compiled supported-assembly allowlist includes inspected game");
+        check(plugin.MainModule.Types.Single(t=>t.FullName=="HullFiller.Plugin").Methods.Single(m=>m.Name=="Awake").Body.Instructions.Any(i=>i.Operand is MethodReference m && m.DeclaringType.FullName=="HullFiller.BuildCompatibility" && m.Name=="IsSupported"),"Compiled startup uses the tested compatibility policy");
     }
 }

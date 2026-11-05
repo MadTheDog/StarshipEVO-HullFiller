@@ -3,6 +3,10 @@ using HullFiller;
 
 int checks=0, failed=0;
 void Check(bool pass,string message) { checks++; if(!pass) { failed++; if(failed<12) Console.WriteLine("FAIL: "+message); } }
+Check(BuildCompatibility.IsSupported(BuildCompatibility.Build26394979),"Previously supported Steam build remains accepted");
+Check(BuildCompatibility.IsSupported(BuildCompatibility.Build26451593),"Reported Steam update hash is accepted");
+Check(!BuildCompatibility.IsSupported(new string('A',64)),"Unknown game assembly remains rejected");
+Check(!BuildCompatibility.IsSupported(null),"Missing game assembly hash rejected");
 bool Near(Vector3 a,Vector3 b) => Vector3.Distance(a,b)<.002f;
 Vector3 Stretch(Vector3 v,Vector3 s) => v + new Vector3(v.X>0?s.X:0,v.Y>.5?s.Y:0,v.Z>0?s.Z:0);
 var loads=typeof(OverloadedResources).GetMethods().Where(m=>m.Name=="Load").ToArray();

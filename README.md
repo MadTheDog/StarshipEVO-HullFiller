@@ -1,4 +1,4 @@
-# Hull Filler v0.1.0
+# Hull Filler v0.1.1
 
 ---
 
@@ -22,15 +22,15 @@ Find **Hull Filler** under **Hull Blocks**. Use the normal hull resize controls 
 
 ### What was tested
 
-- Startup and block/collision registration in a separate single-player installation. The initial player check was positive.
-- **11,910 automated checks**, covering geometry, all 4,096 stretch combinations, reflection across all 24 block rotations and three symmetry planes, ID conflicts and native integration.
+- v0.1.0 passed startup and block/collision registration on build 26394979, followed by a positive initial player check. v0.1.1 passed a separate background startup and registration check on build 26451593.
+- **11,915 automated checks on both supported game assemblies**, covering geometry, all 4,096 stretch combinations, reflection across all 24 block rotations and three symmetry planes, ID conflicts and native integration.
 - Testing remains limited. Broader collision setups, save/blueprint round trips, multiplayer and compatibility with other mods still need verification.
 
 ---
 
 ## Installation requirements
 
-- **Starship EVO Early Access 26w44a**, Steam build **26394979**, Unity **6000.6.6f1** (Unity 6 Mono branch). Other game builds are not supported by this release; the plugin checks the game assembly at startup.
+- **Starship EVO Unity 6 Mono branch**, Steam builds **26394979** and **26451593**, Unity **6000.6.6f1**. Other game builds are not supported by this release; the plugin checks the game assembly at startup.
 - **64-bit Windows** and **BepInEx 5 for Windows x64**. Tested with [BepInEx 5.4.23.5](https://github.com/BepInEx/BepInEx/releases/tag/v5.4.23.5).
 
 ---
@@ -47,7 +47,7 @@ Find **Hull Filler** under **Hull Blocks**. Use the normal hull resize controls 
    HideManagerGameObject = true
    ```
 
-5. Download **HullFiller-v0.1.0.zip** from the release's **Assets**. The auto-generated source ZIP does not contain the plugin. [Releases](https://github.com/MadTheDog/StarshipEVO-HullFiller/releases)
+5. Download **HullFiller-v0.1.1.zip** from the release's **Assets**. The auto-generated source ZIP does not contain the plugin. [Releases](https://github.com/MadTheDog/StarshipEVO-HullFiller/releases)
 6. Extract the ZIP's `BepInEx` folder into the game folder. The file should land here:
 
    ```text

@@ -11,11 +11,10 @@ using VoxelEngine;
 
 namespace HullFiller
 {
-    [BepInPlugin(Id, "Hull Filler", "0.1.0")]
+    [BepInPlugin(Id, "Hull Filler", "0.1.1")]
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Id = "local.sevo.hullfiller";
-        public const string SupportedHash = "EC43D7D362A26B9F7795F130118B0E1EA630B5A3AE0E1732DEB5CC7FA813FE13";
         internal const int FirstShape = 60, SecondShape = 61;
         internal static readonly object[] HullArgs = { "Hull/HullA" };
         internal static ManualLogSource Log;
@@ -37,13 +36,13 @@ namespace HullFiller
                 using (var file = File.OpenRead(typeof(Brick).Assembly.Location))
                 using (var sha = SHA256.Create())
                     hash = BitConverter.ToString(sha.ComputeHash(file)).Replace("-", "");
-                if (hash != SupportedHash)
-                    throw new NotSupportedException("Unsupported Assembly-CSharp: " + hash + ". This build targets the inspected Unity 6 SEVO assembly; update the mod for a different game build.");
+                if (!BuildCompatibility.IsSupported(hash))
+                    throw new NotSupportedException("Unsupported Assembly-CSharp: " + hash + ". Hull Filler 0.1.1 supports inspected Steam builds 26394979 and 26451593 (Unity 6). Update the mod for a different game build.");
                 if (!HullGeometry.CanRegister(LeftId, RightId, 1024, false, false))
                     throw new ArgumentException("Invalid or duplicate configured brick IDs.");
                 harmony = new Harmony(Id);
                 harmony.PatchAll(typeof(Plugin).Assembly);
-                Logger.LogInfo("Hull Filler loaded. Waiting for stock hull resources. Runtime acceptance is pending for v0.1.0.");
+                Logger.LogInfo("Hull Filler loaded. Waiting for stock hull resources.");
             }
             catch (Exception e)
             {
