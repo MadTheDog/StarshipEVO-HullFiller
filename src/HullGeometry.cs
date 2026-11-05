@@ -13,9 +13,36 @@ namespace HullFiller
             return new[] { new Vector3(-.5f*sign,1,-.5f), new Vector3(-.5f*sign,1,.5f),
                 new Vector3(-.5f*sign,0,.5f), new Vector3(.5f*sign,0,.5f) };
         }
+        public static Vector3[] Vertices(bool mirrored, bool flatBase)
+        {
+            if (!flatBase) return Vertices(mirrored);
+            var vertices = Vertices(false);
+            for (int i=0;i<vertices.Length;i++)
+            {
+                var p=vertices[i];
+                // Rz(+90 degrees), then translate into the standard Y-up hull bounds.
+                // The former X=-.5 triangular face becomes the native Y=0 base.
+                vertices[i]=new Vector3((mirrored?-1:1)*(.5f-p.Y),p.X+.5f,p.Z);
+            }
+            return vertices;
+        }
+        public static int[] Faces(bool mirrored, bool flatBase) => OrientFaces(Vertices(mirrored,flatBase));
+        public static bool CanRegisterDefinitions(int[] ids, int length, bool[] occupied)
+        {
+            if(ids==null || occupied==null || ids.Length!=occupied.Length || ids.Length==0)return false;
+            for(int i=0;i<ids.Length;i++)
+            {
+                if(ids[i]<=0 || ids[i]>=length || occupied[i])return false;
+                for(int j=0;j<i;j++)if(ids[i]==ids[j])return false;
+            }
+            return true;
+        }
         public static int[] Faces(bool mirrored)
         {
-            var vertices = Vertices(mirrored);
+            return OrientFaces(Vertices(mirrored));
+        }
+        private static int[] OrientFaces(Vector3[] vertices)
+        {
             var faces = new[] { 0,1,2, 0,2,3, 0,3,1, 1,3,2 };
             Vector3 center = (vertices[0]+vertices[1]+vertices[2]+vertices[3])/4;
             for (int i=0;i<faces.Length;i+=3)

@@ -62,7 +62,7 @@ namespace HullFiller
     {
         private static void Postfix(string ___path,ref float __result)
         {
-            if (___path==MeshFactory.LeftPath || ___path==MeshFactory.RightPath) __result/=6f;
+            if (MeshFactory.IsFillerPath(___path)) __result/=6f;
         }
     }
 
@@ -76,7 +76,7 @@ namespace HullFiller
             if (!plane.IsValid) return false;
             var q=brickData.Quaternion;
             var start=new Placement { PivotGrid=ToNumerics(brickData.gridPosition.ToVector3()),
-                Rotation=new NQuaternion(q.x,q.y,q.z,q.w), Mirrored=brickData.brickId==Plugin.RightId };
+                Rotation=new NQuaternion(q.x,q.y,q.z,q.w), Mirrored=Plugin.IsMirrored(brickData.brickId) };
             var result=PlacementMath.Reflect(start,ToNumerics(brickData.ScaleFloat),brickData.GridSize,
                 ToNumerics(plane.planeOrientation.normal),32*ToNumerics(plane.origin));
             // Resolve to a native discrete rotation instead of serializing arbitrary quaternions.
@@ -89,7 +89,7 @@ namespace HullFiller
             }
             if (best<.9999f) throw new InvalidOperationException("Hull Filler symmetry is not a native block rotation.");
             brickData.rotation=rotation;
-            brickData.brickId=(ushort)(result.Mirrored?Plugin.RightId:Plugin.LeftId);
+            brickData.brickId=(ushort)Plugin.PairedId(brickData.brickId);
             brickData.gridPosition=new Vector3i(Mathf.RoundToInt(result.PivotGrid.X),Mathf.RoundToInt(result.PivotGrid.Y),Mathf.RoundToInt(result.PivotGrid.Z));
             return false;
         }

@@ -6,26 +6,31 @@ namespace HullFiller
     {
         internal const string LeftPath = "mod_hull_filler/unit";
         internal const string RightPath = "mod_hull_filler/unit_mirrored";
-        private static Mesh left, right;
+        internal const string FlatLeftPath = "mod_hull_filler/unit_flat_base";
+        internal const string FlatRightPath = "mod_hull_filler/unit_flat_base_mirrored";
+        private static readonly string[] Paths = { LeftPath,RightPath,FlatLeftPath,FlatRightPath };
+        private static readonly Mesh[] meshes = new Mesh[4];
+        internal static string GetPath(bool mirrored,bool flatBase) => Paths[(flatBase?2:0)+(mirrored?1:0)];
+        internal static bool IsFillerPath(string path) => System.Array.IndexOf(Paths,path)>=0;
 
         // Used only at explicitly patched native mesh loaders. Stock paths fall through.
         internal static Mesh Load(string resourcePath)
         {
-            bool mirrored;
-            if (resourcePath == "Shapes/" + LeftPath) mirrored = false;
-            else if (resourcePath == "Shapes/" + RightPath) mirrored = true;
-            // Native VoxelMesh makes its own preview copy before mutating preview UVs.
-            else if (resourcePath == "Shapes/" + LeftPath + "_preview" || resourcePath == "Shapes/" + RightPath + "_preview") return null;
-            else if (resourcePath == "Shapes/" + LeftPath + "_gizmo" || resourcePath == "Shapes/" + RightPath + "_gizmo") return null;
-            else return Resources.Load<Mesh>(resourcePath);
-            if (mirrored) return right != null ? right : (right = Create(true));
-            return left != null ? left : (left = Create(false));
+            for(int i=0;i<Paths.Length;i++)
+            {
+                string path="Shapes/"+Paths[i];
+                if(resourcePath==path)
+                    return meshes[i]!=null ? meshes[i] : (meshes[i]=Create((i&1)!=0,i>=2));
+                // Native VoxelMesh creates a separate preview before mutating preview UVs.
+                if(resourcePath==path+"_preview" || resourcePath==path+"_gizmo")return null;
+            }
+            return Resources.Load<Mesh>(resourcePath);
         }
 
-        private static Mesh Create(bool mirrored)
+        private static Mesh Create(bool mirrored,bool flatBase)
         {
-            var points = HullGeometry.Vertices(mirrored);
-            var indices = HullGeometry.Faces(mirrored);
+            var points = HullGeometry.Vertices(mirrored,flatBase);
+            var indices = HullGeometry.Faces(mirrored,flatBase);
             var vertices = new Vector3[12]; var triangles = new int[12];
             var uv = new Vector2[12]; var colors = new Color32[12];
             for (int face = 0; face < 4; face++)
@@ -46,7 +51,7 @@ namespace HullFiller
                 uv[start+1] = new Vector2(materialSlot+1f,0f);
                 uv[start+2] = new Vector2(materialSlot,1f);
             }
-            var mesh = new Mesh { name = mirrored ? "HullFillerMirrored" : "HullFiller", vertices = vertices,
+            var mesh = new Mesh { name = "HullFiller"+(flatBase?"FlatBase":"Legacy")+(mirrored?"Mirrored":""), vertices = vertices,
                 triangles = triangles, uv = uv, uv2 = new Vector2[12], colors32 = colors };
             mesh.RecalculateNormals(); mesh.RecalculateTangents(); mesh.RecalculateBounds();
             Object.DontDestroyOnLoad(mesh);

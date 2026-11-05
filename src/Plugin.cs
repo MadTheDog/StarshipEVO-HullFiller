@@ -11,25 +11,31 @@ using VoxelEngine;
 
 namespace HullFiller
 {
-    [BepInPlugin(Id, "Hull Filler", "0.1.1")]
+    [BepInPlugin(Id, "Hull Filler", "0.1.2")]
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Id = "local.sevo.hullfiller";
         internal const int FirstShape = 60, SecondShape = 61;
+        internal const int FlatFirstShape = 58, FlatSecondShape = 59;
+        private static readonly int[] ShapeSlots = { FlatFirstShape,FlatSecondShape,FirstShape,SecondShape };
         internal static readonly object[] HullArgs = { "Hull/HullA" };
         internal static ManualLogSource Log;
-        internal static FillerBrick Left, Right;
-        internal static int LeftId, RightId;
+        internal static FillerBrick Left, Right, LegacyLeft, LegacyRight;
+        internal static int LeftId, RightId, LegacyLeftId, LegacyRightId;
+        private static FillerBrick[] Blocks => new[] { Left,Right,LegacyLeft,LegacyRight };
+        private static int[] BlockIds => new[] { LeftId,RightId,LegacyLeftId,LegacyRightId };
         private static bool failed;
         private static bool collidersReady;
-        private static ColliderShapeCommon.GeoIndexData expectedLeft, expectedRight;
+        private static readonly ColliderShapeCommon.GeoIndexData[] expected = new ColliderShapeCommon.GeoIndexData[4];
         private Harmony harmony;
 
         private void Awake()
         {
             Log = Logger;
-            LeftId = Config.Bind("Blocks", "FillerId", 1002, "Stable save ID, 1-1023. Do not change after placing blocks.").Value;
-            RightId = Config.Bind("Blocks", "MirroredFillerId", 1003, "Stable save ID, 1-1023. Must differ from FillerId.").Value;
+            LegacyLeftId = Config.Bind("Blocks", "FillerId", 1002, "Legacy v0.1.0/v0.1.1 save ID. Keep unchanged for existing blocks.").Value;
+            LegacyRightId = Config.Bind("Blocks", "MirroredFillerId", 1003, "Legacy mirrored save ID. Keep unchanged for existing blocks.").Value;
+            LeftId = Config.Bind("Blocks", "FlatBaseFillerId", 1004, "Flat-base filler save ID. Do not change after placing these blocks.").Value;
+            RightId = Config.Bind("Blocks", "FlatBaseMirroredFillerId", 1005, "Flat-base mirrored save ID. Must differ from all other filler IDs.").Value;
             try
             {
                 string hash;
@@ -37,8 +43,8 @@ namespace HullFiller
                 using (var sha = SHA256.Create())
                     hash = BitConverter.ToString(sha.ComputeHash(file)).Replace("-", "");
                 if (!BuildCompatibility.IsSupported(hash))
-                    throw new NotSupportedException("Unsupported Assembly-CSharp: " + hash + ". Hull Filler 0.1.1 supports inspected Steam builds 26394979 and 26451593 (Unity 6). Update the mod for a different game build.");
-                if (!HullGeometry.CanRegister(LeftId, RightId, 1024, false, false))
+                    throw new NotSupportedException("Unsupported Assembly-CSharp: " + hash + ". Hull Filler 0.1.2 supports inspected Steam builds 26394979 and 26451593 (Unity 6). Update the mod for a different game build.");
+                if (!HullGeometry.CanRegisterDefinitions(BlockIds, 1024, new bool[4]))
                     throw new ArgumentException("Invalid or duplicate configured brick IDs.");
                 harmony = new Harmony(Id);
                 harmony.PatchAll(typeof(Plugin).Assembly);
@@ -58,55 +64,76 @@ namespace HullFiller
             collidersReady = false;
             if (Left != null)
             {
-                if (!ReferenceEquals(Brick.BRICK_INDEX[LeftId], Left) || !ReferenceEquals(Brick.BRICK_INDEX[RightId], Right))
-                    throw new InvalidOperationException("Hull Filler save IDs were replaced by another definition.");
-                Left.LoadAfterStock(); Right.LoadAfterStock(); return;
+                foreach(var definition in Blocks)
+                {
+                    if (!ReferenceEquals(Brick.BRICK_INDEX[definition.brickID],definition))
+                        throw new InvalidOperationException("Hull Filler save IDs were replaced by another definition.");
+                    definition.LoadAfterStock();
+                }
+                return;
             }
-            bool occupiedLeft = Brick.BRICK_INDEX[LeftId] != null;
-            bool occupiedRight = Brick.BRICK_INDEX[RightId] != null;
-            if (!HullGeometry.CanRegister(LeftId, RightId, Brick.BRICK_INDEX.Length, occupiedLeft, occupiedRight))
+            var occupied = new bool[4]; var ids=BlockIds;
+            for(int i=0;i<ids.Length;i++)occupied[i]=Brick.BRICK_INDEX[ids[i]]!=null;
+            if (!HullGeometry.CanRegisterDefinitions(ids, Brick.BRICK_INDEX.Length, occupied))
             {
                 failed = true;
                 Log.LogError("Hull Filler disabled: reserved brick IDs are occupied. No definition overwritten.");
                 return;
             }
-            Left = new FillerBrick(LeftId, false);
-            Right = new FillerBrick(RightId, true);
+            Left = new FillerBrick(LeftId, false, true);
+            Right = new FillerBrick(RightId, true, true);
+            LegacyLeft = new FillerBrick(LegacyLeftId, false, false);
+            LegacyRight = new FillerBrick(LegacyRightId, true, false);
             int[] shapes = { LeftId, RightId };
-            foreach (FillerBrick brick in new[] { Left, Right })
+            int[] legacyShapes = { LegacyLeftId, LegacyRightId };
+            foreach (FillerBrick brick in Blocks)
             {
-                brick.multiShapes = shapes;
+                brick.multiShapes = brick.FlatBase ? shapes : legacyShapes;
                 brick.LoadAfterStock();
                 brick.Desc("Fills the gap between a hull corner and wedge. Stretches on all axes; use the paired shape for opposite handedness.")
                     .Tab(CodexTab.HULL_BLOCKS);
             }
-            Log.LogInfo("Registered Hull Filler and mirrored variant as bricks " + LeftId + "/" + RightId + ". Native hull stretching and materials enabled.");
+            // Keep legacy icon/eyedropper data but show the face-backed pair in the hull tab.
+            CodexTab.HULL_BLOCKS.items.Remove(LegacyLeft);
+            Log.LogInfo("Registered Hull Filler and mirrored variant as bricks " + LeftId + "/" + RightId + " with flat triangular placement bases. Legacy bricks " + LegacyLeftId + "/" + LegacyRightId + " retain their saved geometry.");
         }
 
-        internal static bool IsFiller(Brick brick) => brick != null && (ReferenceEquals(brick, Left) || ReferenceEquals(brick, Right));
+        internal static bool IsFiller(Brick brick) => brick != null && (ReferenceEquals(brick, Left) || ReferenceEquals(brick, Right) || ReferenceEquals(brick,LegacyLeft) || ReferenceEquals(brick,LegacyRight));
+        internal static bool IsMirrored(int id) => id==RightId || id==LegacyRightId;
+        internal static int PairedId(int id)
+        {
+            if(id==LeftId)return RightId;
+            if(id==RightId)return LeftId;
+            if(id==LegacyLeftId)return LegacyRightId;
+            if(id==LegacyRightId)return LegacyLeftId;
+            throw new ArgumentException("Unknown filler block ID.");
+        }
 
         internal static void RegisterColliders()
         {
             if (Left == null || failed) return;
             var table = ColliderShapeResources.GeometryDatas;
-            if (table.Length <= SecondShape || table[FirstShape].vertexCount != 0 || table[SecondShape].vertexCount != 0)
-                throw new InvalidOperationException("Hull Filler collision slots 60/61 are occupied. Refusing to load a world with incorrect collision shapes.");
-            ColliderShapeCommon.CreateShape((ColliderShapeCommon.Shape)FirstShape, MeshFactory.LeftPath);
-            ColliderShapeCommon.CreateShape((ColliderShapeCommon.Shape)SecondShape, MeshFactory.RightPath);
-            if (table[FirstShape].vertexCount != 4 || table[SecondShape].vertexCount != 4
-                || table[FirstShape].planeCount != HullGeometry.NativeSlopedPlaneCount || table[SecondShape].planeCount != HullGeometry.NativeSlopedPlaneCount)
-                throw new InvalidOperationException("Hull Filler native convex collision validation failed.");
-            expectedLeft = table[FirstShape]; expectedRight = table[SecondShape];
+            foreach(int slot in ShapeSlots)
+                if(table.Length<=slot || table[slot].vertexCount!=0)
+                    throw new InvalidOperationException("Hull Filler collision slot "+slot+" is occupied. Refusing to load with incorrect geometry.");
+            var blocks=Blocks;
+            for(int i=0;i<blocks.Length;i++)
+            {
+                int slot=ShapeSlots[i];
+                ColliderShapeCommon.CreateShape((ColliderShapeCommon.Shape)slot,blocks[i].nameMesh);
+                if(table[slot].vertexCount!=4 || table[slot].planeCount!=HullGeometry.NativeSlopedPlaneCount)
+                    throw new InvalidOperationException("Hull Filler native convex collision validation failed for "+blocks[i].nameMesh);
+                expected[i]=table[slot];
+            }
             collidersReady = true;
             Log.LogInfo("Hull Filler native convex collision registered (4 vertices, 2 sloped planes plus native bounding planes per variant).");
         }
 
         internal static void RequireReadyForResourceCallbacks()
         {
-            bool owns = ColliderShapeResources.GeometryDatas.IsCreated
-                && ColliderShapeResources.GeometryDatas.Length > SecondShape
-                && ColliderShapeResources.GeometryDatas[FirstShape].Equals(expectedLeft)
-                && ColliderShapeResources.GeometryDatas[SecondShape].Equals(expectedRight);
+            var table=ColliderShapeResources.GeometryDatas;
+            bool owns = table.IsCreated && table.Length > SecondShape;
+            if(owns)for(int i=0;i<ShapeSlots.Length;i++)owns &= table[ShapeSlots[i]].Equals(expected[i]);
             if (!HullGeometry.CanFinishResourceLoad(Left != null, collidersReady, owns))
             {
                 const string error = "Hull Filler collision initialization failed or reserved slots were overwritten. Resource-loaded callbacks are blocked; resolve the mod conflict before loading a world.";
@@ -118,10 +145,12 @@ namespace HullFiller
 
     internal sealed class FillerBrick : Brick
     {
-        internal FillerBrick(int id, bool mirrored)
-            : base(id, mirrored ? "Hull Filler (mirrored)" : "Hull Filler", mirrored ? MeshFactory.RightPath : MeshFactory.LeftPath,
+        internal readonly bool FlatBase;
+        internal FillerBrick(int id, bool mirrored,bool flatBase)
+            : base(id, (mirrored ? "Hull Filler (mirrored)" : "Hull Filler")+(flatBase?"":" (legacy)"), MeshFactory.GetPath(mirrored,flatBase),
                 ResizeMode.BlockFull, Plugin.HullArgs)
         {
+            FlatBase=flatBase;
             Brick stock = TabHull.HULL_A;
             systemProfile = stock.systemProfile;
             massForUnitShape = stock.massForUnitShape;
@@ -136,7 +165,7 @@ namespace HullFiller
             defaultPaint = stock.defaultPaint;
             PreviewPaint = stock.PreviewPaint;
             scaleUV = stock.scaleUV;
-            colliderShape = (ColliderShapeCommon.Shape)(mirrored ? Plugin.SecondShape : Plugin.FirstShape);
+            colliderShape = (ColliderShapeCommon.Shape)(flatBase ? (mirrored?Plugin.FlatSecondShape:Plugin.FlatFirstShape) : (mirrored ? Plugin.SecondShape : Plugin.FirstShape));
         }
         // Wait for stock material IDs on every resource reload.
         protected override void LoadResourcesRuntime() { }

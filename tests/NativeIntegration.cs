@@ -16,7 +16,7 @@ static class NativeIntegration
             check(loads==target.Item3,"Exact native mesh-loader transpiler sites: "+target.Item1);
         }
         var shape=types.Single(t=>t.FullName=="Manager.ColliderShapeCommon").NestedTypes.Single(t=>t.Name=="Shape");
-        check(shape.Fields.Where(f=>f.HasConstant).All(f=>Convert.ToInt32(f.Constant)<60),"Native enum does not occupy collider slots 60/61");
+        check(shape.Fields.Where(f=>f.HasConstant).All(f=>Convert.ToInt32(f.Constant)<58),"Native enum does not occupy active/legacy collider slots 58-61");
         var alloc=types.Single(t=>t.FullName=="Manager.ColliderShapeResources").Methods.Single(m=>m.Name=="AllocateResources");
         check(alloc.Body.Instructions.Any(i=>i.Operand is sbyte n && n==64),"Native collider table has 64 entries");
         var manager=types.Single(t=>t.FullName=="Manager.GameResourcesManager").Methods.Single(m=>m.Name=="AllocateResources");

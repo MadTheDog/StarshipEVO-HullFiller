@@ -7,6 +7,43 @@ Check(BuildCompatibility.IsSupported(BuildCompatibility.Build26394979),"Previous
 Check(BuildCompatibility.IsSupported(BuildCompatibility.Build26451593),"Reported Steam update hash is accepted");
 Check(!BuildCompatibility.IsSupported(new string('A',64)),"Unknown game assembly remains rejected");
 Check(!BuildCompatibility.IsSupported(null),"Missing game assembly hash rejected");
+Check(HullGeometry.CanRegisterDefinitions(new[]{1004,1005,1002,1003},1024,new bool[4]),"New flat-base pair and legacy pair reserve four distinct IDs");
+Check(!HullGeometry.CanRegisterDefinitions(new[]{1004,1005,1002,1004},1024,new bool[4]),"Legacy/new ID overlap rejected");
+for(int occupiedId=0;occupiedId<4;occupiedId++)
+{
+    var used=new bool[4];used[occupiedId]=true;
+    Check(!HullGeometry.CanRegisterDefinitions(new[]{1004,1005,1002,1003},1024,used),"Any occupied active or legacy ID prevents registration");
+}
+foreach(bool mirroredBase in new[]{false,true})
+{
+    var baseVertices=HullGeometry.Vertices(mirroredBase,true);
+    var baseFaces=HullGeometry.Faces(mirroredBase,true);
+    Check(baseVertices.Count(v=>Math.Abs(v.Y)<1e-6)==3,"Marked triangular face forms native Y=0 placement base");
+    bool hasDownwardBase=false;
+    for(int i=0;i<baseFaces.Length;i+=3)
+    {
+        var p=baseVertices[baseFaces[i]];var q=baseVertices[baseFaces[i+1]];var r=baseVertices[baseFaces[i+2]];
+        if(p.Y==0 && q.Y==0 && r.Y==0)hasDownwardBase=Vector3.Cross(q-p,r-p).Y<0;
+    }
+    Check(hasDownwardBase,"Placement base is an outward-facing triangle, not an edge");
+    var old=HullGeometry.Vertices(mirroredBase);
+    for(int i=0;i<4;i++)
+    {
+        var p=old[i];
+        var rotated=mirroredBase ? new Vector3(p.Y-.5f,.5f-p.X,p.Z) : new Vector3(.5f-p.Y,.5f+p.X,p.Z);
+        Check(Near(rotated,baseVertices[i]),"Flat-base mesh is a rigid reorientation of the same filler");
+    }
+    for(int x=0;x<=15;x++)for(int y=0;y<=15;y++)for(int z=0;z<=15;z++)
+    {
+        var s=new Vector3(x,y,z);var vertices=baseVertices.Select(v=>Stretch(v,s)).ToArray();
+        double volume=0;
+        for(int i=0;i<baseFaces.Length;i+=3)volume+=Vector3.Dot(vertices[baseFaces[i]],Vector3.Cross(vertices[baseFaces[i+1]],vertices[baseFaces[i+2]]))/6.0;
+        Check(Math.Abs(volume-(x+1.0)*(y+1)*(z+1)/6)<.001,"Flat-base stretching retains native collision volume");
+        Check(vertices.Count(v=>v.Y==0)==3 && vertices.All(v=>v.Y>=0),"Stretched base stays on support plane with no geometry below it");
+    }
+}
+var legacyExpected=new[]{new Vector3(-.5f,1,-.5f),new Vector3(-.5f,1,.5f),new Vector3(-.5f,0,.5f),new Vector3(.5f,0,.5f)};
+Check(HullGeometry.Vertices(false).SequenceEqual(legacyExpected),"Legacy mesh coordinates are unchanged for saved blocks");
 bool Near(Vector3 a,Vector3 b) => Vector3.Distance(a,b)<.002f;
 Vector3 Stretch(Vector3 v,Vector3 s) => v + new Vector3(v.X>0?s.X:0,v.Y>.5?s.Y:0,v.Z>0?s.Z:0);
 var loads=typeof(OverloadedResources).GetMethods().Where(m=>m.Name=="Load").ToArray();
@@ -64,7 +101,7 @@ foreach(var rightAxis in axes)foreach(int signR in new[]{-1,1})foreach(var upAxi
     rotations.Add(Quaternion.CreateFromRotationMatrix(new Matrix4x4(right.X,right.Y,right.Z,0,up.X,up.Y,up.Z,0,forward.X,forward.Y,forward.Z,0,0,0,0,1)));
 }
 Check(rotations.Count==24,"24 native cube rotations");
-foreach(var rotation in rotations)foreach(var normal in axes)foreach(var scale in new[]{Vector3.Zero,new Vector3(1,3,7),new Vector3(15,0,2)})foreach(float grid in new[]{.125f,1f,2f})foreach(bool mirrored in new[]{false,true})
+foreach(bool flatBase in new[]{false,true})foreach(var rotation in rotations)foreach(var normal in axes)foreach(var scale in new[]{Vector3.Zero,new Vector3(1,3,7),new Vector3(15,0,2)})foreach(float grid in new[]{.125f,1f,2f})foreach(bool mirrored in new[]{false,true})
 {
     var start=new Placement{PivotGrid=new Vector3(64,-32,96),Rotation=rotation,Mirrored=mirrored};
     var origin=new Vector3(16,32,-16);
@@ -72,7 +109,7 @@ foreach(var rotation in rotations)foreach(var normal in axes)foreach(var scale i
     Check(end.Mirrored!=start.Mirrored,"Reflection swaps handedness");
     var twice=PlacementMath.Reflect(end,scale,grid,normal,origin);
     Check(Near(twice.PivotGrid,start.PivotGrid) && Math.Abs(Quaternion.Dot(twice.Rotation,start.Rotation))>.9999 && twice.Mirrored==start.Mirrored,"Double reflection restores placement");
-    var oldV=HullGeometry.Vertices(start.Mirrored);var newV=HullGeometry.Vertices(end.Mirrored);
+    var oldV=HullGeometry.Vertices(start.Mirrored,flatBase);var newV=HullGeometry.Vertices(end.Mirrored,flatBase);
     for(int i=0;i<oldV.Length;i++)
     {
         var world=start.PivotGrid+Vector3.Transform(Stretch(oldV[i],scale)*32*grid,start.Rotation);

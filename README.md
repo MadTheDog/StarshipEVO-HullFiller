@@ -1,4 +1,4 @@
-# Hull Filler v0.1.1
+# Hull Filler v0.1.2
 
 ---
 
@@ -12,9 +12,12 @@ Adds a stretchable hull shape that fills the gap between a standard corner and w
 
 Find **Hull Filler** under **Hull Blocks**. Use the normal hull resize controls and the shape selector to switch between the original and mirrored variants.
 
+The flat triangular face is the placement base, so the block attaches and rotates on that face instead of requiring a support block under its edge.
+
 | Feature | What changes |
 |---|---|
 | Corner-to-wedge filler | Completes a standard corner into a wedge without the triangular gap. |
+| Flat-face placement base | Places and rotates against the triangular flat face using the normal build controls. |
 | Three-axis stretching | Uses the game's normal hull stretching and grid sizes. |
 | Mirrored variant | Provides the opposite-handed shape. Active build symmetry selects it automatically. |
 | Hull materials and painting | Uses the original hull surfaces, material selection and paint controls. |
@@ -22,8 +25,8 @@ Find **Hull Filler** under **Hull Blocks**. Use the normal hull resize controls 
 
 ### What was tested
 
-- v0.1.0 passed startup and block/collision registration on build 26394979, followed by a positive initial player check. v0.1.1 passed a separate background startup and registration check on build 26451593.
-- **11,915 automated checks on both supported game assemblies**, covering geometry, all 4,096 stretch combinations, reflection across all 24 block rotations and three symmetry planes, ID conflicts and native integration.
+- v0.1.0 passed startup and block/collision registration on build 26394979, followed by a positive initial player check. v0.1.2 passed a separate background startup and registration check on build 26451593.
+- **36,094 automated checks on both supported game assemblies**, covering geometry, all 4,096 stretch combinations, reflection across all 24 block rotations and three symmetry planes, ID conflicts and native integration.
 - Testing remains limited. Broader collision setups, save/blueprint round trips, multiplayer and compatibility with other mods still need verification.
 
 ---
@@ -47,7 +50,7 @@ Find **Hull Filler** under **Hull Blocks**. Use the normal hull resize controls 
    HideManagerGameObject = true
    ```
 
-5. Download **HullFiller-v0.1.1.zip** from the release's **Assets**. The auto-generated source ZIP does not contain the plugin. [Releases](https://github.com/MadTheDog/StarshipEVO-HullFiller/releases)
+5. Download **HullFiller-v0.1.2.zip** from the release's **Assets**. The auto-generated source ZIP does not contain the plugin. [Releases](https://github.com/MadTheDog/StarshipEVO-HullFiller/releases)
 6. Extract the ZIP's `BepInEx` folder into the game folder. The file should land here:
 
    ```text
@@ -61,7 +64,7 @@ Find **Hull Filler** under **Hull Blocks**. Use the normal hull resize controls 
 
 7. Launch the game. Look for **Hull Filler** under **Hull Blocks**. If it is missing, check the DLL path, the loader option above and `BepInEx/LogOutput.log` for the registration messages.
 
-To update, close the game and replace `BepInEx/plugins/HullFiller/HullFiller.dll`. Keep a single copy installed.
+To update, close the game and replace `BepInEx/plugins/HullFiller/HullFiller.dll`. Keep a single copy installed. **After updating from v0.1.0/v0.1.1, select Hull Filler again from Hull Blocks and replace the old hotbar entry.** Old entries and eyedropped old blocks retain the legacy placement orientation; previously placed blocks keep their geometry and position.
 
 ## How to uninstall
 
@@ -73,8 +76,8 @@ To update, close the game and replace `BepInEx/plugins/HullFiller/HullFiller.dll
 
 ## Notes
 
-- Saves and blueprints containing these blocks depend on the mod. Default brick IDs are **1002** and **1003**. Keep them stable across saves and matching between installations. Occupied IDs disable registration without replacing existing definitions.
-- Collision slots **60** and **61** are reserved. A collision initialization conflict prevents resource loading rather than using the wrong collision shape.
+- Saves and blueprints containing these blocks depend on the mod. New flat-base blocks use IDs **1004/1005**, configured by `FlatBaseFillerId` and `FlatBaseMirroredFillerId`. Existing **1002/1003** definitions remain as legacy blocks, using the original `FillerId` and `MirroredFillerId` settings. Keep all IDs stable and distinct. Occupied IDs disable registration without replacing existing definitions.
+- Collision slots **58–61** are reserved for the active and legacy pairs. A collision initialization conflict prevents resource loading rather than using the wrong collision shape.
 - The filler is one sixth of the matching full hull box by volume. It uses native volume scaling for weight and hull properties.
 - The mesh is generated inside the plugin. No Unity Editor, asset bundle or replacement game assets are needed to install it.
 - Single-player testing only. Hot unloading is unsupported.
