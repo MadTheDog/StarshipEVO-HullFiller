@@ -17,7 +17,8 @@ namespace HullFiller
         {
             yield return AccessTools.Constructor(typeof(VoxelMesh), new[] { typeof(string),typeof(Brick),typeof(float),typeof(ResizeMode),typeof(bool),typeof(bool) });
             yield return AccessTools.Constructor(typeof(VoxelItemCollider), new[] { typeof(VoxelMesh),typeof(ColliderShapeCommon.Shape),typeof(Bounds),typeof(SubShape[]) });
-            yield return AccessTools.Method(typeof(ColliderShapeCommon),nameof(ColliderShapeCommon.CreateShape));
+            yield return AccessTools.Method(typeof(ColliderShapeCommon),nameof(ColliderShapeCommon.CreateShape),
+                new[] { typeof(ColliderShapeCommon.Shape),typeof(string),typeof(ColliderShapeCommon.StretchMode),typeof(bool),typeof(Unity.Mathematics.float3) });
         }
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase __originalMethod)
         {
@@ -35,17 +36,17 @@ namespace HullFiller
         }
     }
 
-    [HarmonyPatch(typeof(Brick),nameof(Brick.LoadAllResourcesRuntime))]
+    [HarmonyPatch(typeof(Brick),nameof(Brick.LoadAllResourcesRuntime),new Type[] { })]
     internal static class RegistrationPatch { private static void Postfix() => Plugin.Register(); }
 
-    [HarmonyPatch(typeof(ColliderShapeResources),nameof(ColliderShapeResources.AllocateResources))]
+    [HarmonyPatch(typeof(ColliderShapeResources),nameof(ColliderShapeResources.AllocateResources),new Type[] { })]
     internal static class ColliderRegistrationPatch { private static void Postfix() => Plugin.RegisterColliders(); }
 
     // The allocator swallows callback exceptions; this uncaught boundary must also gate success.
-    [HarmonyPatch(typeof(GameResourcesManager),nameof(GameResourcesManager.OnResourceLoaded))]
+    [HarmonyPatch(typeof(GameResourcesManager),nameof(GameResourcesManager.OnResourceLoaded),new Type[] { })]
     internal static class ResourceReadyPatch { private static void Prefix() => Plugin.RequireReadyForResourceCallbacks(); }
 
-    [HarmonyPatch(typeof(VoxelMaterial),nameof(VoxelMaterial.CreateFaceIDArrayRuntime))]
+    [HarmonyPatch(typeof(VoxelMaterial),nameof(VoxelMaterial.CreateFaceIDArrayRuntime),new[] { typeof(object[]) })]
     internal static class HullMaterialPatch
     {
         private static bool Prefix(object[] __0,ref VoxelMaterial[] __result)
@@ -57,7 +58,7 @@ namespace HullFiller
         }
     }
 
-    [HarmonyPatch(typeof(VoxelItemCollider),nameof(VoxelItemCollider.GetShapeFactor))]
+    [HarmonyPatch(typeof(VoxelItemCollider),nameof(VoxelItemCollider.GetShapeFactor),new[] { typeof(Vector3) })]
     internal static class VolumeFactorPatch
     {
         private static void Postfix(string ___path,ref float __result)
@@ -66,7 +67,7 @@ namespace HullFiller
         }
     }
 
-    [HarmonyPatch(typeof(EntitySymmetry),nameof(EntitySymmetry.ApplySymmetry))]
+    [HarmonyPatch(typeof(EntitySymmetry),nameof(EntitySymmetry.ApplySymmetry),new[] { typeof(BrickInstanceData),typeof(SymmetryPlane) },new[] { ArgumentType.Ref,ArgumentType.Normal })]
     internal static class SymmetryPatch
     {
         private static bool Prefix(ref BrickInstanceData brickData,SymmetryPlane plane,ref bool __result)

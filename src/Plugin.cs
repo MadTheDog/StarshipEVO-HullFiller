@@ -11,7 +11,7 @@ using VoxelEngine;
 
 namespace HullFiller
 {
-    [BepInPlugin(Id, "Hull Filler", "0.1.2")]
+    [BepInPlugin(Id, "Hull Filler", "0.1.3")]
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Id = "local.sevo.hullfiller";
@@ -38,12 +38,8 @@ namespace HullFiller
             RightId = Config.Bind("Blocks", "FlatBaseMirroredFillerId", 1005, "Flat-base mirrored save ID. Must differ from all other filler IDs.").Value;
             try
             {
-                string hash;
-                using (var file = File.OpenRead(typeof(Brick).Assembly.Location))
-                using (var sha = SHA256.Create())
-                    hash = BitConverter.ToString(sha.ComputeHash(file)).Replace("-", "");
-                if (!BuildCompatibility.IsSupported(hash))
-                    throw new NotSupportedException("Unsupported Assembly-CSharp: " + hash + ". Hull Filler 0.1.2 supports inspected Steam builds 26394979 and 26451593 (Unity 6). Update the mod for a different game build.");
+                GameContracts.RequireCompatible(typeof(Brick).Assembly.Location, typeof(Plugin).Assembly.Location);
+                LogAssemblyIdentity();
                 if (!HullGeometry.CanRegisterDefinitions(BlockIds, 1024, new bool[4]))
                     throw new ArgumentException("Invalid or duplicate configured brick IDs.");
                 harmony = new Harmony(Id);
@@ -56,6 +52,18 @@ namespace HullFiller
                 failed = true;
                 Logger.LogError("Hull Filler disabled before registration: " + e);
             }
+        }
+
+        private static void LogAssemblyIdentity()
+        {
+            try
+            {
+                using (var file = File.OpenRead(typeof(Brick).Assembly.Location))
+                using (var sha = SHA256.Create())
+                    Log.LogInfo("Validated game contracts. Assembly SHA256=" + BitConverter.ToString(sha.ComputeHash(file)).Replace("-", "")
+                        + "; MVID=" + typeof(Brick).Assembly.ManifestModule.ModuleVersionId);
+            }
+            catch (Exception e) { Log.LogWarning("Game identity diagnostic unavailable: " + e.Message); }
         }
 
         internal static void Register()
@@ -120,7 +128,8 @@ namespace HullFiller
             for(int i=0;i<blocks.Length;i++)
             {
                 int slot=ShapeSlots[i];
-                ColliderShapeCommon.CreateShape((ColliderShapeCommon.Shape)slot,blocks[i].nameMesh);
+                ColliderShapeCommon.CreateShape((ColliderShapeCommon.Shape)slot,blocks[i].nameMesh,
+                    ColliderShapeCommon.StretchMode.uniformScale,false,default(Unity.Mathematics.float3));
                 if(table[slot].vertexCount!=4 || table[slot].planeCount!=HullGeometry.NativeSlopedPlaneCount)
                     throw new InvalidOperationException("Hull Filler native convex collision validation failed for "+blocks[i].nameMesh);
                 expected[i]=table[slot];

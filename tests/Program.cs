@@ -3,10 +3,6 @@ using HullFiller;
 
 int checks=0, failed=0;
 void Check(bool pass,string message) { checks++; if(!pass) { failed++; if(failed<12) Console.WriteLine("FAIL: "+message); } }
-Check(BuildCompatibility.IsSupported(BuildCompatibility.Build26394979),"Previously supported Steam build remains accepted");
-Check(BuildCompatibility.IsSupported(BuildCompatibility.Build26451593),"Reported Steam update hash is accepted");
-Check(!BuildCompatibility.IsSupported(new string('A',64)),"Unknown game assembly remains rejected");
-Check(!BuildCompatibility.IsSupported(null),"Missing game assembly hash rejected");
 Check(HullGeometry.CanRegisterDefinitions(new[]{1004,1005,1002,1003},1024,new bool[4]),"New flat-base pair and legacy pair reserve four distinct IDs");
 Check(!HullGeometry.CanRegisterDefinitions(new[]{1004,1005,1002,1004},1024,new bool[4]),"Legacy/new ID overlap rejected");
 for(int occupiedId=0;occupiedId<4;occupiedId++)

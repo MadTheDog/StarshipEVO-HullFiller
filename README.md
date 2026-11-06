@@ -1,4 +1,4 @@
-# Hull Filler v0.1.2
+# Hull Filler v0.1.3 candidate
 
 ---
 
@@ -26,14 +26,15 @@ The flat triangular face is the placement base, so the block attaches and rotate
 ### What was tested
 
 - v0.1.0 passed startup and block/collision registration on build 26394979, followed by a positive initial player check. v0.1.2 passed a separate background startup and registration check on build 26451593.
-- **36,094 automated checks on both supported game assemblies**, covering geometry, all 4,096 stretch combinations, reflection across all 24 block rotations and three symmetry planes, ID conflicts and native integration.
+- The v0.1.3 candidate adds dependency-contract and mutated-assembly checks to the geometry, stretching, symmetry, ID-conflict and native-integration checks. See [the compatibility report](docs/COMPATIBILITY-20261106.md) for exact results and runtime gaps.
 - Testing remains limited. Broader collision setups, save/blueprint round trips, multiplayer and compatibility with other mods still need verification.
 
 ---
 
 ## Installation requirements
 
-- **Starship EVO Unity 6 Mono branch**, Steam builds **26394979** and **26451593**, Unity **6000.6.6f1**. Other game builds are not supported by this release; the plugin checks the game assembly at startup.
+- Target checked for this candidate is **Steam build ID 26451593 / 26w45a**, Unity 6 Mono branch, Unity **6000.6.6f1**. The retained 26394979 assembly is also checked as a regression fixture.
+- Compatibility is checked through the required game members, patch signatures and mesh-loader sites, collision geometry layout, available collider slots and resource-readiness boundary. Assembly SHA256 and MVID are diagnostic records. A changed build identity alone does not reject the plugin. Future releases require verification before being described as tested.
 - **64-bit Windows** and **BepInEx 5 for Windows x64**. Tested with [BepInEx 5.4.23.5](https://github.com/BepInEx/BepInEx/releases/tag/v5.4.23.5).
 
 ---
@@ -50,7 +51,7 @@ The flat triangular face is the placement base, so the block attaches and rotate
    HideManagerGameObject = true
    ```
 
-5. Download **HullFiller-v0.1.2.zip** from the release's **Assets**. The auto-generated source ZIP does not contain the plugin. [Releases](https://github.com/MadTheDog/StarshipEVO-HullFiller/releases)
+5. For a published version, download the plugin ZIP from its release's **Assets**. The v0.1.3 source candidate is available on `main`; its binary package **HullFiller-v0.1.3-candidate.zip** has not been released. The auto-generated source ZIP does not contain the plugin. [Releases](https://github.com/MadTheDog/StarshipEVO-HullFiller/releases)
 6. Extract the ZIP's `BepInEx` folder into the game folder. The file should land here:
 
    ```text

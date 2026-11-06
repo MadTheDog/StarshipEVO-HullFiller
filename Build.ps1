@@ -31,14 +31,17 @@ try {
     $dll = Join-Path $root 'src\bin\Release\netstandard2.1\HullFiller.dll'
     & $DotnetPath (Join-Path $root 'tests\bin\Release\net8.0\HullFiller.Tests.dll') $assembly $dll
     if ($LASTEXITCODE) { throw 'Geometry, symmetry or native integration checks failed.' }
-    $package = Join-Path $root 'dist\HullFiller-v0.1.2'
+    $package = Join-Path $root 'dist\HullFiller-v0.1.3-candidate'
     $plugins = Join-Path $package 'BepInEx\plugins\HullFiller'
     New-Item -ItemType Directory -Force -Path $plugins | Out-Null
     Copy-Item -LiteralPath $dll -Destination (Join-Path $plugins 'HullFiller.dll')
     Copy-Item -LiteralPath 'README.md','LICENSE' -Destination $package
+    $documentation = Join-Path $package 'docs'
+    New-Item -ItemType Directory -Force -Path $documentation | Out-Null
+    Copy-Item -LiteralPath 'docs/COMPATIBILITY-20261106.md' -Destination $documentation
     $hash = (Get-FileHash -LiteralPath (Join-Path $plugins 'HullFiller.dll')).Hash.ToLowerInvariant()
     [IO.File]::WriteAllText((Join-Path $package 'SHA256SUMS.txt'), "$hash  BepInEx/plugins/HullFiller/HullFiller.dll`n", [Text.UTF8Encoding]::new($false))
-    $zip = Join-Path $root 'dist\HullFiller-v0.1.2.zip'
+    $zip = Join-Path $root 'dist\HullFiller-v0.1.3-candidate.zip'
     Compress-Archive -Path (Join-Path $package '*') -DestinationPath $zip -Force
     Write-Output "Package: $zip"
     Write-Output "DLL SHA256: $hash"
