@@ -27,6 +27,7 @@ The flat triangular face is the placement base, so the block attaches and rotate
 
 - v0.1.0 passed startup and block/collision registration on build 26394979, followed by a positive initial player check. v0.1.2 passed a separate background startup and registration check on build 26451593.
 - The v0.1.3 candidate adds dependency-contract and mutated-assembly checks to the geometry, stretching, symmetry, ID-conflict and native-integration checks. See [the compatibility report](docs/COMPATIBILITY-20261106.md) for exact results and runtime gaps.
+- The candidate completed startup with Starship Keel **v0.1.2** in audit mode on Steam build **26451593 / 26w45a**. Hull Filler uses its custom geometry and existing saved block IDs. [Keel coexistence report](https://github.com/MadTheDog/StarshipEVO-HullFiller/blob/main/docs/KEEL-COEXISTENCE-20261107.md)
 - Testing remains limited. Broader collision setups, save/blueprint round trips, multiplayer and compatibility with other mods still need verification.
 
 ---
